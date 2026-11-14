@@ -1,0 +1,58 @@
+# CCDC sshd_config (MWCCDC Invitational, Debian 12 Splunk box). Installed by harden.sh,
+# which validates it with `sshd -t` before reloading.
+#
+# OpenSSH uses the FIRST value it sees for each option. With the Include at the top,
+# any drop-in file (including one planted by red team, e.g. "PermitRootLogin yes")
+# would override everything below. The Include is at the END of this file so the
+# settings here always win. Effective settings:  sudo sshd -T | less
+
+# SSH is a scored service: keep port 22 (Systems #6: no moving services).
+Port 22
+
+# VERBOSE logs key fingerprints and every auth attempt to /var/log/auth.log -> Splunk.
+SyslogFacility AUTH
+LogLevel VERBOSE
+
+LoginGraceTime 30
+PermitRootLogin no
+StrictModes yes
+MaxAuthTries 3
+MaxSessions 7
+MaxStartups 10:30:60
+
+PubkeyAuthentication yes
+# authorized_keys2 is a common red team hiding spot, so only authorized_keys is read.
+AuthorizedKeysFile .ssh/authorized_keys
+
+HostbasedAuthentication no
+IgnoreRhosts yes
+PermitEmptyPasswords no
+
+# Passwords STAY ON: the scoring engine's SSH check authenticates with a password,
+# and the team has no keys deployed. Turning this off fails the scored check.
+PasswordAuthentication yes
+KbdInteractiveAuthentication no
+UsePAM yes
+
+# Never use AllowUsers/AllowGroups or source-IP limits here: the scoring account
+# must log in, and filtering by source IP is against the rules (Systems #9).
+
+AllowAgentForwarding no
+AllowTcpForwarding no
+GatewayPorts no
+X11Forwarding no
+PermitTunnel no
+PermitUserEnvironment no
+
+PrintMotd no
+TCPKeepAlive yes
+ClientAliveInterval 300
+ClientAliveCountMax 2
+UseDNS no
+
+Banner /etc/issue.net
+AcceptEnv LANG LC_*
+Subsystem sftp /usr/lib/openssh/sftp-server
+
+# Drop-ins last so they cannot override the settings above. Match blocks still work.
+Include /etc/ssh/sshd_config.d/*.conf
